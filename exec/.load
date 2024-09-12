@@ -1,11 +1,11 @@
-f_hostname
+f_hn_dns
 f_firewalld
 f_selinux
 f_user
 f_deps
 f_kernel
 f_limit
-mkdir_dir
+create_user_dir
 move_dbsoft
 config_env
 remove_ora_files

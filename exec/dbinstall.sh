@@ -340,7 +340,7 @@ function install_database(){
     print_sub_log "Please check ${TOPLEVEL_DIR}/log/success.log and input root password and press enter key"
 
     su - oracle -c "cd $ORACLE_HOME; ./runInstaller -silent -responseFile ${ORACLE_HOME}/db_install.rsp" >>${ERROR_LOG} 2>&1 >>${SUCCESS_LOG}
-    check_install_status=$(egrep -i "error|fatal|no such" ${ERROR_LOG}| wc -l)
+    check_install_status=$(egrep -i "fatal|no such" ${ERROR_LOG}| wc -l)
     if [ ${check_install_status} -ge 1 ];then
         print_error_log "Installing found error,Please check error ${ERROR_LOG}"
         exit 99
