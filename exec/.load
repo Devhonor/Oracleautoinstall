@@ -1,0 +1,14 @@
+f_hostname
+f_firewalld
+f_selinux
+f_user
+f_deps
+f_kernel
+f_limit
+mkdir_dir
+move_dbsoft
+config_env
+remove_ora_files
+unzip_file
+config_rsp_file
+install_database
