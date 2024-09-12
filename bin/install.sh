@@ -3,7 +3,8 @@
 ###################################################################
 # Program Name: Oracle Auto Install scripts                       #
 # Author: Songshaohua                                             #
-# Date: 2024-08-11                                                #
+# Date: 2024-08-11        
+# Version: 1.0                                                    #
 ###################################################################
 
 #Define return status
