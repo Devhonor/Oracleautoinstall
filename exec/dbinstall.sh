@@ -27,28 +27,29 @@ function create_os_user(){
     useradd -u 3000 -g oinstall -G dba,oper,racdba,backupdba,kmdba,dgdba,asmoper,asmdba oracle >>${ERROR_LOG} 2>&1 >>${SUCCESS_LOG}
     print_sub_log "Setting oracle user password"
 
-    count=0
-    max_attempts=3
+    # count=0
+    # max_attempts=3
 
-    while [[ $count -lt $max_attempts ]]; do
-        ((count++))
-        read -p "Please input oracle os user's password: " passwd1
-        read -p "Please confirm oracle os user's password: " passwd2
+    # while [[ $count -lt $max_attempts ]]; do
+    #     ((count++))
+    #     read -p "Please input oracle os user's password: " passwd1
+    #     read -p "Please confirm oracle os user's password: " passwd2
 
-        if [[ "${passwd1}" == "${passwd2}" ]]; then
-            echo ${passwd2} | passwd --stdin oracle &>/dev/null && {
-                print_sub_log "Setting oracle user password successfully !"
-                break
-            }
-        else
-            if [[ $count -eq $max_attempts ]]; then
-                print_error_log "Exceeded maximum attempts,exit."
-                exit 99
-            else
-                print_error_log "The password doesn't match, please try again."
-            fi
-        fi
-    done
+    #     if [[ "${passwd1}" == "${passwd2}" ]]; then
+    #         echo ${passwd2} | passwd --stdin oracle &>/dev/null && {
+    #             print_sub_log "Setting oracle user password successfully !"
+    #             break
+    #         }
+    #     else
+    #         if [[ $count -eq $max_attempts ]]; then
+    #             print_error_log "Exceeded maximum attempts,exit."
+    #             exit 99
+    #         else
+    #             print_error_log "The password doesn't match, please try again."
+    #         fi
+    #     fi
+    # done
+    echo ${ORACLEUSERPASSWORD} | passwd --stdin oracle &>/dev/null
 }
 
 function create_user_dir(){
@@ -274,7 +275,15 @@ function config_exec_root(){
     sed -i "s/oracle.install.db.rootconfig.executeRootScript=/oracle.install.db.rootconfig.executeRootScript=true/" ${TOPLEVEL_DIR}/response/db_install.rsp
 
     print_sub_log "Setting root scripts methods"
-    sed -i "s/oracle.install.db.rootconfig.configMethod=/oracle.install.db.rootconfig.configMethod=ROOT/" ${TOPLEVEL_DIR}/response/db_install.rsp
+    sed -i "s/oracle.install.db.rootconfig.configMethod=/oracle.install.db.rootconfig.configMethod=SUDO/" ${TOPLEVEL_DIR}/response/db_install.rsp
+
+    sudopath=$(echo /usr/bin/sudo | sed 's#/#\\/#g')
+    print_sub_log "Setting sudo path"
+    sed -i "s/oracle.install.db.rootconfig.sudoPath=/oracle.install.db.rootconfig.sudoPath=${sudopath}/" ${TOPLEVEL_DIR}/response/db_install.rsp
+
+    print_sub_log "Setting sudo user list"
+    sed -i "s/oracle.install.db.rootconfig.sudoUserName=/oracle.install.db.rootconfig.sudoUserName=oracle/" ${TOPLEVEL_DIR}/response/db_install.rsp
+
 }
 
 function last_modify_priv(){
@@ -337,9 +346,18 @@ function config_rsp_file(){
 
 function install_database(){
     print_log "14. Installing software begin"
-    print_sub_log "Please check ${TOPLEVEL_DIR}/log/success.log and input root password and press enter key"
-
-    su - oracle -c "cd $ORACLE_HOME; ./runInstaller -silent -responseFile ${ORACLE_HOME}/db_install.rsp" >>${ERROR_LOG} 2>&1 >>${SUCCESS_LOG}
+    print_sub_log "More info please check ${TOPLEVEL_DIR}/log/success.log"
+/usr/bin/expect <<EOF >>${ERROR_LOG} 2>&1 >>${SUCCESS_LOG}
+spawn su - oracle -c "cd $ORACLE_HOME; ./runInstaller -silent -responseFile ${ORACLE_HOME}/db_install.rsp"
+    expect {
+        " Enter password for user oracle :" { send "${ORACLEUSERPASSWORD}\r";exp_continue }
+    }
+EOF
+    sleep 120
+    ${ORACLE_HOME}/root.sh >>${ERROR_LOG} 2>&1 >>${SUCCESS_LOG}
+    TOP_ORAINVENTORY=$(dirname ${ORACLE_BASE})
+    ORAINVENTORY="${TOP_ORAINVENTORY}/oraInventory"
+    ${ORAINVENTORY}/orainstRoot.sh >>${ERROR_LOG} 2>&1 >>${SUCCESS_LOG}
     check_install_status=$(egrep -i "fatal|no such" ${ERROR_LOG}| wc -l)
     if [ ${check_install_status} -ge 1 ];then
         print_error_log "Installing found error,Please check error ${ERROR_LOG}"
@@ -351,3 +369,9 @@ function install_database(){
     su - oracle -c "cd $ORACLE_HOME; /u01/app/oracle/product/19.0.0.0/dbhome_1/runInstaller -executeConfigTools -responseFile db_install.rsp -silent" >>${ERROR_LOG} 2>&1 >>${SUCCESS_LOG}
     print_log "    Create database successfully"
 }
+
+function cancel_sudo(){
+    print_log "16. Cancel sudo privilege for oracle"
+    sed -i "/oracle/d" /etc/sudoers
+}
+

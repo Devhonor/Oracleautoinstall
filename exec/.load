@@ -12,3 +12,4 @@ remove_ora_files
 unzip_file
 config_rsp_file
 install_database
+cancel_sudo

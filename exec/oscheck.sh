@@ -73,61 +73,36 @@ function f_user(){
     else 
         print_success_log "Oracle user already exists !"      
     fi
+    print_sub_log "Addming sudo privileges"
+    sed -i "/oracle/d" /etc/sudoers
+    echo "oracle  ALL=(ALL)       NOPASSWD: ALL" >>/etc/sudoers
     print_log "   Checking user group end "
 }
 
 
 function f_deps(){
-    print_log "5. Checking software dependences and installing loss software begin"
-    os_version=$(hostnamectl | grep Operating |awk '{print$5}')
-    if [[ "${os_version}" == "7" ]];then
-        command_mode=yum
-        while read line;do
-            is_check_pkg=$(${command_mode} list installed | grep -w ${line} | awk '{print $1}' | wc -l)
-            if [[ ${is_check_pkg} == "1" ]];then
-                print_success_log "The package ${line} has been installed !"
-            else 
-                print_sub_log "The package ${line} will be installed !"
-                ${command_mode} install -y ${line} >>${ERROR_LOG} 2>&1 >>${SUCCESS_LOG}
-                error_check=$(egrep "Error: Unable to find a match" ${TOPLEVEL_DIR}/log/error.log | wc -l)
-                if [ ${error_check} -ne 0 ];then
-                    print_error_log "The package ${line} install failure"
-                else
-                    print_success_log "The package ${line} install successfully"
-                fi
-            fi
-        done<${TOPLEVEL_DIR}/lib/pkglist
-    elif [[ "${os_version}" == "8" ]];then
-        command_mode=dnf
-        while read line;do
-            is_check_pkg=$(${command_mode} list installed | grep -w ${line} | awk '{print $1}' | wc -l)
-            if [[ ${is_check_pkg} == "1" ]];then
-                print_success_log "The package ${line} has been installed !"
-            else 
-                print_sub_log "The package ${line} will be installed !"
-                ${command_mode} install -y ${line} >>${ERROR_LOG} 2>&1 >>${SUCCESS_LOG}
-                error_check=$(egrep "Error: Unable to find a match" ${TOPLEVEL_DIR}/log/error.log | wc -l)
-                if [ ${error_check} -ne 0 ];then
-                    print_error_log "The package ${line} install failure"
-                else
-                    print_success_log "The package ${line} install successfully"
-                fi
-            fi
-        done<${TOPLEVEL_DIR}/lib/pkglist8
-    else
-        command_mode=dnf
-    fi
+    print_log "5. Installing dependences packages begin"
+    cd ${TOPLEVEL_DIR}/rpm
+    rpm -ivh deltarpm-* &>/dev/null
+    rpm -ivh libxml2-python-* &>/dev/null
+    rpm -ivh rpm -ivh python-deltarpm-* &>/dev/null
+    rpm -ivh createrepo-* &>/dev/null
+    cd ${TOPLEVEL_DIR} && createrepo rpm &>/dev/null
+    cd /etc/yum.repos.d/ && mkdir -p repobak && mv *.repo repobak
+cat >/etc/yum.repos.d/oradeps.repo<<EOF
+[oradeps]
+name=oradeps
+baseurl=file://${TOPLEVEL_DIR}/rpm
+enabled=1
+gpgcheck=0
+EOF
+    print_sub_log "installing ......."
+    for pkg in `cat ${TOPLEVEL_DIR}/lib/pkglist`;do
+        yum install -y  ${pkg} >>${ERROR_LOG} 2>&1 >>${SUCCESS_LOG}
+    done
+    print_sub_log "installing complete"
 
-
-    error_check=$(egrep "Error: Unable to find a match" ${TOPLEVEL_DIR}/log/error.log | wc -l)
-
-    if [ ${error_check} -ne 0 ];then
-        print_error_log "There have some erros in ${ERROR_LOG},please check it"
-        exit 99
-    fi
-
-    
-    print_log "   Checking software dependences and installing loss software end"
+    print_log "   Installing dependences packages begin end"
 }
 
 function f_kernel(){
