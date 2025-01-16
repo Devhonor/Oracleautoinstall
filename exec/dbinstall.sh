@@ -184,12 +184,17 @@ function config_charset(){
 
 function is_auto_memory(){
     print_sub_log "Checking physical memory"
-    os_physical=$(free -m | grep 'Mem' | awk '{print $2}')
-    if [[ "${os_physical}" < "4096" ]];then
+    os_physical_mem=$(free -m | grep 'Mem' | awk '{print $2}')
+    if [[ "${os_physical_mem}" < "4096" ]];then
         if [[ "${IS_AUTO_MEMORY}" == "false" ]];then
             print_error_log "OS physical memory less than 4096M, IS_AUTO_MEMORY must be setting true"
             exit 99
         fi
+    fi
+
+    if [[ "${os_physical_mem}" < "${MEMORY_LIMIT}" ]];then
+        print_error_log "MEMORY_LIMIT value must be less than os physical memory"
+        exit 99
     fi
 
     if [[ "${IS_AUTO_MEMORY}" == "false" ]];then
@@ -201,6 +206,8 @@ function is_auto_memory(){
     else
         print_sub_log "Memory management method is auto management"
         sed -i "s/oracle.install.db.config.starterdb.memoryOption=/oracle.install.db.config.starterdb.memoryOption=${IS_AUTO_MEMORY}/" ${TOPLEVEL_DIR}/response/db_install.rsp
+        print_sub_log "Setting memory size limit"
+        sed -i "s/oracle.install.db.config.starterdb.memoryLimit=/oracle.install.db.config.starterdb.memoryLimit=${MEMORY_LIMIT}/" ${TOPLEVEL_DIR}/response/db_install.rsp
     fi
 }
 
