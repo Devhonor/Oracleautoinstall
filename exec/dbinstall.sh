@@ -370,6 +370,7 @@ spawn su - oracle -c "cd $ORACLE_HOME; ./runInstaller -silent -responseFile ${OR
     }
 EOF
     sleep 120
+    
     ${ORACLE_HOME}/root.sh >>${ERROR_LOG} 2>&1 >>${SUCCESS_LOG}
     TOP_ORAINVENTORY=$(dirname ${ORACLE_BASE})
     ORAINVENTORY="${TOP_ORAINVENTORY}/oraInventory"
