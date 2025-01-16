@@ -83,6 +83,8 @@ function f_user(){
 function f_deps(){
     print_log "5. Installing dependences packages begin"
     cd ${TOPLEVEL_DIR}/rpm
+    rpm -ivh tcl-* &>/dev/null
+    rpm -ivh expect-* &>/dev/null
     rpm -ivh deltarpm-* &>/dev/null
     rpm -ivh libxml2-python-* &>/dev/null
     rpm -ivh rpm -ivh python-deltarpm-* &>/dev/null
